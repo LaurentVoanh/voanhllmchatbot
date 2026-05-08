@@ -1179,6 +1179,7 @@ canvas { max-width: 100%; }
 .style-fill.accent  { background: var(--accent); }
 .style-fill.purple  { background: var(--accent2); }
 .style-fill.green   { background: var(--accent3); }
+.style-fill.warn    { background: var(--warn); }
 
 /* Sentiment track amélioré */
 .sentiment-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
