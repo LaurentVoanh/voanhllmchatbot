@@ -1,11 +1,24 @@
 <?php
 set_time_limit(600);
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 require_once 'config.php';
 require_once 'database.php';
+
+// Force UTF-8 et JSON propre
+mb_internal_encoding('UTF-8');
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
 
 // ── Session & Auth ───────────────────────────────────────────
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (empty($_SESSION['sid'])) {
+    http_response_code(401);
     echo json_encode(['error' => 'SESSION_EXPIRED', 'timestamp' => date('H:i:s')], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -14,55 +27,130 @@ $user_email = $_SESSION['user_email'] ?? 'anonyme';
 ensure_session($session, $_SESSION['user_id'] ?? null);
 
 // ── Input ────────────────────────────────────────────────────
-$input      = json_decode(file_get_contents('php://input'), true) ?? [];
+$raw_input = file_get_contents('php://input');
+if (empty($raw_input)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Aucune donnée reçue'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$input = json_decode($raw_input, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
+    echo json_encode(['error' => 'JSON invalide: ' . json_last_error_msg()], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $message    = trim($input['message'] ?? '');
 $mode       = $input['mode']    ?? ($_SESSION['mode'] ?? 'info');
 $model_task = $input['model']   ?? ($_SESSION['model_task'] ?? 'chat');
 $phase      = $input['phase']   ?? 'reply';
 $msg_id_ref = (int)($input['msg_id'] ?? 0);
+$pre_prompt = $input['pre_prompt'] ?? '';
+$agent_type = $input['agent_type'] ?? 'standard';
 
 // Sauvegarder mode et modèle en session
 $_SESSION['mode'] = $mode;
 $_SESSION['model_task'] = $model_task;
 
-if (!$message && !in_array($phase, ['suggest', 'correct', 'devil', 'compare', 'plan', 'tutor', 'left_suggest', 'extract_topics'])) { 
+if (!$message && !in_array($phase, ['suggest', 'correct', 'devil', 'compare', 'plan', 'tutor', 'left_suggest', 'extract_topics', 'wikipedia', 'next_question', 'thematic_help'])) { 
+    http_response_code(400);
     echo json_encode(['error' => 'Message vide'], JSON_UNESCAPED_UNICODE); 
     exit; 
 }
 
-// ── Helpers cURL ─────────────────────────────────────────────
+// ── Helpers cURL optimisés Hostinger ─────────────────────────
 function do_curl(string $url, string $key, array $payload, int $timeout = 55): array {
     $ch = curl_init($url);
+    if ($ch === false) {
+        return ['raw' => '', 'code' => 0, 'err' => 'Échec initialisation cURL'];
+    }
+    
+    $headers = [
+        "Authorization: Bearer $key",
+        "Content-Type: application/json",
+        "Accept: application/json",
+        "User-Agent: Aether/5.0"
+    ];
+    
     curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER     => ["Authorization: Bearer $key", "Content-Type: application/json"],
+        CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
         CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 3,
         CURLOPT_TIMEOUT        => $timeout,
         CURLOPT_CONNECTTIMEOUT => 15,
         CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_ENCODING       => 'gzip, deflate',
+        CURLOPT_IPRESOLVE      => CURL_IPRESOLVE_V4
     ]);
+    
     $raw  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err  = curl_error($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
-    return ['raw' => $raw, 'code' => $code, 'err' => $err];
+    
+    // Log erreur si problème
+    if ($errno !== 0 || $code >= 400) {
+        error_log("cURL Error: $errno - $err - HTTP $code");
+    }
+    
+    return ['raw' => $raw, 'code' => $code, 'err' => $err, 'errno' => $errno];
 }
 
 function extract_content(array $res): ?string {
-    if (!$res['raw'] || $res['code'] !== 200) return null;
+    if (empty($res['raw']) || $res['code'] !== 200) {
+        if (!empty($res['raw'])) {
+            error_log("API Response: " . substr($res['raw'], 0, 500));
+        }
+        return null;
+    }
     $d = json_decode($res['raw'], true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("JSON decode error in API response: " . json_last_error_msg());
+        return null;
+    }
     return $d['choices'][0]['message']['content'] ?? null;
 }
 
 function parse_json_safe(array $res, string $fallback): array {
     $content = extract_content($res);
-    if (!$content) return json_decode($fallback, true) ?? [];
-    $content = preg_replace('/^```json\s*/i', '', trim($content));
+    if (empty($content)) {
+        return json_decode($fallback, true) ?? [];
+    }
+    // Nettoyer markdown et backticks
+    $content = preg_replace('/^```(?:json)?\s*/i', '', trim($content));
     $content = preg_replace('/\s*```$/', '', $content);
-    $parsed  = json_decode($content, true);
-    return (json_last_error() === JSON_ERROR_NONE && is_array($parsed))
-        ? $parsed : (json_decode($fallback, true) ?? []);
+    $content = trim($content);
+    
+    $parsed = json_decode($content, true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($parsed)) {
+        return $parsed;
+    }
+    
+    // Tentative de récupération partielle
+    error_log("JSON parse failed, attempting fallback. Content: " . substr($content, 0, 200));
+    return json_decode($fallback, true) ?? [];
+}
+
+function clean_markdown(string $text): string {
+    // Retirer les blocs de code
+    $text = preg_replace('/```[\s\S]*?```/', '', $text);
+    // Retirer les titres markdown
+    $text = preg_replace('/^#+\s*/m', '', $text);
+    // Retirer gras/italique
+    $text = preg_replace('/\*\*(.*?)\*\*/', '$1', $text);
+    $text = preg_replace('/\*(.*?)\*/', '$1', $text);
+    $text = preg_replace('/__(.*?)__/', '$1', $text);
+    // Retirer les liens markdown
+    $text = preg_replace('/\[(.*?)\]\((.*?)\)/', '$1', $text);
+    // Retirer listes
+    $text = preg_replace('/^[\-\*]\s+/m', '', $text);
+    return trim($text);
 }
 
 // ── Système prompts par mode ─────────────────────────────────
@@ -84,7 +172,28 @@ $system_reply .= $ctx_inject;
 if ($phase === 'reply') {
     $history      = get_history($session, 8);
     $messages_ctx = array_map(fn($m) => ['role'=>$m['role'],'content'=>$m['content']], $history);
-    $messages_ctx[] = ['role'=>'user','content'=>$message];
+    
+    // Ajout pre-prompt si fourni
+    $final_message = $message;
+    if (!empty($pre_prompt)) {
+        $final_message = "[INSTRUCTION: " . $pre_prompt . "]\n\n" . $message;
+    }
+    
+    // Agent spécial - prompt personnalisé
+    $agent_prompts = [
+        'standard' => '',
+        'expert' => 'Tu es un expert senior. Réponds avec profondeur technique et précision.',
+        'creative' => 'Tu es un créatif innovant. Propose des idées originales et surprenantes.',
+        'critic' => 'Tu es un critique rigoureux. Analyse les points faibles et propose améliorations.',
+        'tutor' => 'Tu es un pédagogue patient. Explique simplement avec exemples.',
+        'coach' => 'Tu es un coach motivant. Encourage et guide vers l'action.'
+    ];
+    $agent_instruction = $agent_prompts[$agent_type] ?? '';
+    if (!empty($agent_instruction)) {
+        $system_reply .= "\n\n[MODE AGENT: $agent_instruction]";
+    }
+    
+    $messages_ctx[] = ['role'=>'user','content'=>$final_message];
 
     $model_reply = select_model($model_task);
     $t0          = microtime(true);
@@ -203,4 +312,121 @@ if ($phase === 'analyze') {
     exit;
 }
 
-echo json_encode(['error'=>'Phase inconnue'], JSON_UNESCAPED_UNICODE);
+// ════════════════════════════════════════════
+// NOUVELLES PHASES — OUTILS D'AIDE LLM
+// ════════════════════════════════════════════
+
+// WIKIPEDIA — Recherche encyclopédique
+if ($phase === 'wikipedia') {
+    $model_reply = select_model($model_task);
+    $wiki_prompt = "Recherche et synthétise des informations sur: \"$message\". Fournis une réponse structurée avec faits vérifiables, contexte historique, concepts clés. Si le sujet est ambigu, demande clarification.";
+    
+    $res = do_curl(MISTRAL_API, get_key('responder'), [
+        'model'       => $model_reply,
+        'messages'    => [
+            ['role'=>'system','content'=>"Tu es un assistant encyclopédique expert. Réponds de manière factuelle, organisée, avec exemples concrets."],
+            ['role'=>'user','content'=>$wiki_prompt]
+        ],
+        'temperature' => 0.3,
+        'max_tokens'  => 1500,
+    ]);
+    
+    $latency = (int)((microtime(true) - (microtime(true) - 1)) * 1000);
+    
+    if (!$res['raw'] || $res['code'] !== 200) {
+        echo json_encode(['error' => 'Erreur Wikipedia API', 'timestamp' => date('H:i:s')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    
+    $result = json_decode($res['raw'], true);
+    $reply_raw = clean_markdown($result['choices'][0]['message']['content'] ?? '');
+    
+    echo json_encode([
+        'reply'     => $reply_raw,
+        'source'    => 'wikipedia_helper',
+        'timestamp' => date('H:i:s'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// NEXT_QUESTION — Suggestion prochaine question
+if ($phase === 'next_question') {
+    $history = get_history($session, 6);
+    $ctx = implode("\n", array_map(fn($m) => $m['role'].': '.$m['content'], $history));
+    
+    $res = do_curl(MISTRAL_API, get_key('analyzer1'), [
+        'model'       => 'mistral-small-2506',
+        'messages'    => [
+            ['role'=>'system','content'=>"Génère 3 suggestions de questions pertinentes pour approfondir la discussion. JSON uniquement: {questions: string[]}. Pas de backticks."],
+            ['role'=>'user','content'=>"Contexte conversation:\n$ctx\n\nSujet actuel: $message"]
+        ],
+        'temperature'     => 0.7,
+        'max_tokens'      => 300,
+        'response_format' => ['type'=>'json_object'],
+    ]);
+    
+    $suggestions = parse_json_safe($res, '{"questions":["Question 1","Question 2","Question 3"]}');
+    
+    echo json_encode([
+        'suggestions' => $suggestions['questions'] ?? [],
+        'timestamp'   => date('H:i:s'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// THEMATIC_HELP — Aide thématique
+if ($phase === 'thematic_help') {
+    $topic = $input['topic'] ?? 'général';
+    
+    $res = do_curl(MISTRAL_API, get_key('responder'), [
+        'model'       => select_model($model_task),
+        'messages'    => [
+            ['role'=>'system','content'=>"Tu es un guide expert. Pour chaque thématique, fournis: concepts clés, ressources recommandées, pièges à éviter, exercices pratiques."],
+            ['role'=>'user','content'=>"Thématique: $topic. Message utilisateur: $message"]
+        ],
+        'temperature' => 0.4,
+        'max_tokens'  => 1200,
+    ]);
+    
+    if (!$res['raw'] || $res['code'] !== 200) {
+        echo json_encode(['error' => 'Erreur aide thématique', 'timestamp' => date('H:i:s')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    
+    $result = json_decode($res['raw'], true);
+    $reply_raw = clean_markdown($result['choices'][0]['message']['content'] ?? '');
+    
+    echo json_encode([
+        'reply'     => $reply_raw,
+        'topic'     => $topic,
+        'timestamp' => date('H:i:s'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// SUGGEST — Suggestions générales
+if ($phase === 'suggest') {
+    $history = get_history($session, 4);
+    $ctx = implode("\n", array_map(fn($m) => $m['content'], $history));
+    
+    $res = do_curl(MISTRAL_API, get_key('analyzer2'), [
+        'model'       => 'ministral-3b-2512',
+        'messages'    => [
+            ['role'=>'system','content'=>"Propose 5 suggestions courtes et pertinentes pour continuer la conversation. JSON: {suggestions: string[]}"],
+            ['role'=>'user','content'=>"Conversation:\n$ctx"]
+        ],
+        'temperature'     => 0.8,
+        'max_tokens'      => 250,
+        'response_format' => ['type'=>'json_object'],
+    ]);
+    
+    $data = parse_json_safe($res, '{"suggestions":[]}');
+    
+    echo json_encode([
+        'suggestions' => $data['suggestions'] ?? [],
+        'timestamp'   => date('H:i:s'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+echo json_encode(['error'=>'Phase inconnue: '.$phase], JSON_UNESCAPED_UNICODE);
