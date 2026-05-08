@@ -64,9 +64,9 @@ body {
 }
 
 /* ══════════════════════════════════════════════════
-   SIDEBAR
+   LEFT PANEL (nouveau nom pour sidebar)
 ══════════════════════════════════════════════════ */
-.sidebar {
+.left-panel, .sidebar {
   background: var(--panel);
   border-right: 1px solid var(--border);
   display: flex;
@@ -74,11 +74,48 @@ body {
   padding: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  width: 280px;
+  min-width: 280px;
+  transition: all 0.3s ease;
 }
 
-.sidebar::-webkit-scrollbar { width: 3px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--border2); }
+.left-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+}
+
+.left-panel::-webkit-scrollbar, .sidebar::-webkit-scrollbar { width: 3px; }
+.left-panel::-webkit-scrollbar-track, .sidebar::-webkit-scrollbar-track { background: transparent; }
+.left-panel::-webkit-scrollbar-thumb, .sidebar::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* Panel toggle button */
+.panel-toggle-btn {
+  background: var(--border);
+  border: 1px solid var(--border2);
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  margin: 0.5rem 1rem;
+  border-radius: 3px;
+  transition: all 0.2s;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.panel-toggle-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.panel-toggle-btn.right {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  margin: 0;
+}
 
 /* Brand */
 .brand-block {
@@ -551,7 +588,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════
-   ANALYSIS PANEL
+   ANALYSIS PANEL (RIGHT PANEL)
 ══════════════════════════════════════════════════ */
 .analysis-panel {
   background: var(--panel);
@@ -560,18 +597,36 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: 380px;
+  min-width: 380px;
+  transition: all 0.3s ease;
+}
+
+.analysis-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
 }
 
 .analysis-panel::-webkit-scrollbar { width: 3px; }
 .analysis-panel::-webkit-scrollbar-track { background: transparent; }
 .analysis-panel::-webkit-scrollbar-thumb { background: var(--border2); }
 
-/* Panel header */
+/* Panel header avec toggle */
 .panel-header {
   padding: 1rem;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(135deg, rgba(124,58,237,.08), transparent);
   flex-shrink: 0;
+  position: relative;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .panel-title {
@@ -1287,6 +1342,152 @@ canvas { max-width: 100%; }
   .msg-bubble { max-width: 98%; font-size: .82rem; }
   .login-card { padding: 1.5rem 1rem; }
   .login-title { font-size: 1rem; letter-spacing: 2px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AETHER v5.0 — NOUVEAUX STYLES LLM STUDIO
+═══════════════════════════════════════════════════════════ */
+
+/* Pre-prompt textarea */
+.pre-prompt-input {
+  width: 100%;
+  min-height: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  resize: vertical;
+  margin-bottom: 0.3rem;
+}
+
+.pre-prompt-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,229,255,0.1);
+}
+
+.hint-text {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Quick actions buttons */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.quick-action-btn {
+  background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(124,58,237,0.05));
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.6rem;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.quick-action-btn:hover {
+  background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(124,58,237,0.1));
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+
+.quick-actions-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Suggestions bubble in chat */
+.suggestions-bubble {
+  background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(0,229,255,0.05));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem;
+  margin: 0.5rem 1rem;
+  max-width: 90%;
+}
+
+.suggestions-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  color: var(--accent2);
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.suggestion-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.6rem;
+  margin: 0.2rem 0;
+  font-size: 0.65rem;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.suggestion-btn:hover {
+  background: rgba(0,229,255,0.1);
+  border-color: var(--accent);
+  padding-left: 0.8rem;
+}
+
+/* App shell layout with 3 columns */
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr 380px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-shell .left-panel.collapsed ~ .chat-panel {
+  /* handled by JS class toggle */
+}
+
+.app-shell:has(.left-panel.collapsed) {
+  grid-template-columns: 0 1fr 380px;
+}
+
+.app-shell:has(.analysis-panel.collapsed) {
+  grid-template-columns: 280px 1fr 0;
+}
+
+.app-shell:has(.left-panel.collapsed):has(.analysis-panel.collapsed) {
+  grid-template-columns: 0 1fr 0;
+}
+
+/* Panel header title styling */
+.panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--accent2);
+  letter-spacing: 3px;
+  filter: drop-shadow(0 0 8px var(--accent2));
+}
+
+.panel-sub {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+  font-family: 'Share Tech Mono', monospace;
 }
 
 /* ═══════════════════════════════════════════════════════════
