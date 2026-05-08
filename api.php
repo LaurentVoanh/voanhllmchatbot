@@ -16,12 +16,19 @@ ensure_session($session, $_SESSION['user_id'] ?? null);
 // ── Input ────────────────────────────────────────────────────
 $input      = json_decode(file_get_contents('php://input'), true) ?? [];
 $message    = trim($input['message'] ?? '');
-$mode       = $input['mode']    ?? 'normal';
-$model_task = $input['model']   ?? 'chat';
+$mode       = $input['mode']    ?? ($_SESSION['mode'] ?? 'info');
+$model_task = $input['model']   ?? ($_SESSION['model_task'] ?? 'chat');
 $phase      = $input['phase']   ?? 'reply';
 $msg_id_ref = (int)($input['msg_id'] ?? 0);
 
-if (!$message) { echo json_encode(['error' => 'Message vide'], JSON_UNESCAPED_UNICODE); exit; }
+// Sauvegarder mode et modèle en session
+$_SESSION['mode'] = $mode;
+$_SESSION['model_task'] = $model_task;
+
+if (!$message && !in_array($phase, ['suggest', 'correct', 'devil', 'compare', 'plan', 'tutor', 'left_suggest', 'extract_topics'])) { 
+    echo json_encode(['error' => 'Message vide'], JSON_UNESCAPED_UNICODE); 
+    exit; 
+}
 
 // ── Helpers cURL ─────────────────────────────────────────────
 function do_curl(string $url, string $key, array $payload, int $timeout = 55): array {
@@ -58,8 +65,8 @@ function parse_json_safe(array $res, string $fallback): array {
         ? $parsed : (json_decode($fallback, true) ?? []);
 }
 
-// ── Système prompts ───────────────────────────────────────────
-$temp_map    = ['normal'=>0.5,'profond'=>0.3,'creatif'=>0.9,'technique'=>0.2,'poetique'=>0.95];
+// ── Système prompts par mode ─────────────────────────────────
+$temp_map    = ['info'=>0.5, 'redaction'=>0.4, 'critique'=>0.3, 'brainstorm'=>0.8, 'technique'=>0.2, 'apprendre'=>0.3];
 $temperature = $temp_map[$mode] ?? 0.5;
 
 // Récupérer contexte mémoire
@@ -68,13 +75,8 @@ $ctx_inject  = $ctx_summary
     ? "\n\n[MÉMOIRE CONTEXTE UTILISATEUR ({$user_email})]\n$ctx_summary\n[FIN MÉMOIRE]"
     : '';
 
-$system_reply = match($mode) {
-    'profond'   => "Tu es AETHER v4.0, IA d'analyse profonde. Réponds avec profondeur et nuance.",
-    'creatif'   => "Tu es AETHER v4.0, mode créatif. Réponds avec imagination et originalité.",
-    'technique' => "Tu es AETHER v4.0, mode technique. Sois précis, structuré, cite des données.",
-    'poetique'  => "Tu es AETHER v4.0, mode poétique. Exprime-toi avec lyrisme et images sensorielles.",
-    default     => "Tu es AETHER v4.0, assistant IA avancé. Réponds en français de manière claire et utile.",
-} . $ctx_inject;
+$system_reply = SYSTEM_PROMPTS[$mode] ?? SYSTEM_PROMPTS['info'];
+$system_reply .= $ctx_inject;
 
 // ════════════════════════════════════════════
 // PHASE 1 — REPLY (1 appel, ~5-15s)
