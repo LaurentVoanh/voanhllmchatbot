@@ -27,17 +27,37 @@ $user_email = $_SESSION['user_email'] ?? 'anonyme';
 ensure_session($session, $_SESSION['user_id'] ?? null);
 
 // ── Input ────────────────────────────────────────────────────
+// Hostinger mutualisé : gestion robuste du input
 $raw_input = file_get_contents('php://input');
+
+// Nettoyage BOM et espaces blancs pour Hostinger
+$raw_input = trim($raw_input);
+if (substr($raw_input, 0, 3) === "\xEF\xBB\xBF") {
+    $raw_input = substr($raw_input, 3);
+}
+$raw_input = trim($raw_input);
+
 if (empty($raw_input)) {
     http_response_code(400);
     echo json_encode(['error' => 'Aucune donnée reçue'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
+// Validation JSON stricte
 $input = json_decode($raw_input, true);
-if (json_last_error() !== JSON_ERROR_NONE) {
+$json_err = json_last_error();
+if ($json_err !== JSON_ERROR_NONE) {
+    error_log("JSON Error: " . json_last_error_msg() . " - Raw: " . substr($raw_input, 0, 200));
     http_response_code(400);
-    echo json_encode(['error' => 'JSON invalide: ' . json_last_error_msg()], JSON_UNESCAPED_UNICODE);
+    $err_msg = match($json_err) {
+        JSON_ERROR_DEPTH => 'Profondeur JSON dépassée',
+        JSON_ERROR_STATE_MISMATCH => 'JSON mal formé',
+        JSON_ERROR_CTRL_CHAR => 'Caractère de contrôle invalide',
+        JSON_ERROR_SYNTAX => 'Erreur syntaxe JSON',
+        JSON_ERROR_UTF8 => 'Encodage UTF-8 invalide',
+        default => 'JSON invalide'
+    };
+    echo json_encode(['error' => $err_msg], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
