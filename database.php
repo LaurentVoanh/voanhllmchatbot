@@ -14,16 +14,14 @@ function get_db(): PDO {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Sessions
     $pdo->exec("CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         user_id INTEGER DEFAULT NULL,
         model TEXT DEFAULT 'chat',
-        mode TEXT DEFAULT 'info',
+        mode TEXT DEFAULT 'normal',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Messages
     $pdo->exec("CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT,
@@ -36,48 +34,33 @@ function get_db(): PDO {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Contextes d'analyse (remplace analyses - simplifié pour v5.0)
-    $pdo->exec("CREATE TABLE IF NOT EXISTS contexts (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS analyses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT,
         message_id INT,
+        sentiment TEXT,
+        sentiment_score REAL,
+        emotion_primary TEXT,
+        emotion_secondary TEXT,
+        tone TEXT,
+        style_formal INT,
+        style_assertive INT,
+        style_creative INT,
+        complexity INT,
+        vocabulary_richness INT,
+        avg_sentence_len REAL,
+        word_count INT,
         themes TEXT,
-        intent TEXT,
         keywords TEXT,
-        depth_level INT DEFAULT 1,
-        clarity_score INT DEFAULT 50,
-        density_score INT DEFAULT 50,
-        clarity_advice TEXT,
-        density_advice TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
-
-    // Cache news
-    $pdo->exec("CREATE TABLE IF NOT EXISTS news_cache (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        query_hash TEXT UNIQUE,
-        query_text TEXT,
-        articles TEXT,
-        source_type TEXT DEFAULT 'google',
-        fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
-
-    // Glossaire vivant
-    $pdo->exec("CREATE TABLE IF NOT EXISTS glossary (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        term TEXT,
-        definition TEXT,
-        context_snippet TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
-
-    // Plans de session
-    $pdo->exec("CREATE TABLE IF NOT EXISTS session_plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        plan_markdown TEXT,
-        themes_snapshot TEXT,
+        intent TEXT,
+        language_patterns TEXT,
+        rhetorical_devices TEXT,
+        cognitive_load INT,
+        information_density INT,
+        question_count INT,
+        certainty_level INT,
+        raw_analysis_a TEXT,
+        raw_analysis_b TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -87,7 +70,6 @@ function get_db(): PDO {
         session_id TEXT,
         context_summary TEXT,
         msg_count INT DEFAULT 0,
-        user_corrections TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -106,100 +88,32 @@ function save_message(string $session, string $role, string $content, int $ti = 
     return (int)$db->lastInsertId();
 }
 
-// Sauvegarde le contexte d'analyse simplifié (v5.0)
-function save_context(string $session, int $msg_id, array $data): void {
-    $db = get_db();
-    $db->prepare("INSERT INTO contexts (
-        session_id, message_id, themes, intent, keywords, 
-        depth_level, clarity_score, density_score, clarity_advice, density_advice
-    ) VALUES (?,?,?,?,?,?,?,?,?,?)")->execute([
-        $session,
-        $msg_id,
-        json_encode($data['themes'] ?? []),
-        $data['intent'] ?? '',
-        json_encode($data['keywords'] ?? []),
-        $data['depth_level'] ?? 1,
-        $data['clarity_score'] ?? 50,
-        $data['density_score'] ?? 50,
-        $data['clarity_advice'] ?? '',
-        $data['density_advice'] ?? ''
+function save_analysis(string $session, int $msg_id, array $a, array $b): void {
+    $db   = get_db();
+    $text = $a['source_text'] ?? '';
+    $wc   = str_word_count($text);
+    $sents = preg_split('/[.!?]+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+    $avg  = ($wc > 0 && count($sents) > 0) ? round($wc / count($sents), 1) : 0;
+
+    $db->prepare("INSERT INTO analyses (
+        session_id,message_id,sentiment,sentiment_score,emotion_primary,emotion_secondary,tone,
+        style_formal,style_assertive,style_creative,complexity,vocabulary_richness,
+        avg_sentence_len,word_count,themes,keywords,intent,language_patterns,rhetorical_devices,
+        cognitive_load,information_density,question_count,certainty_level,raw_analysis_a,raw_analysis_b
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")->execute([
+        $session, $msg_id,
+        $a['sentiment'] ?? 'neutre', $a['sentiment_score'] ?? 50,
+        $a['emotion_primary'] ?? '', $a['emotion_secondary'] ?? '', $a['tone'] ?? '',
+        $a['style_formal'] ?? 50, $a['style_assertive'] ?? 50, $a['style_creative'] ?? 50,
+        $b['complexity'] ?? 50, $b['vocabulary_richness'] ?? 50,
+        $avg, $wc,
+        json_encode($b['themes'] ?? []), json_encode($b['keywords'] ?? []),
+        $b['intent'] ?? '', json_encode($b['language_patterns'] ?? []),
+        json_encode($b['rhetorical_devices'] ?? []),
+        $b['cognitive_load'] ?? 50, $b['information_density'] ?? 50,
+        substr_count($text, '?'), $b['certainty_level'] ?? 50,
+        json_encode($a), json_encode($b),
     ]);
-}
-
-// Récupère le dernier contexte pour une session
-function get_last_context(string $session): array {
-    $db = get_db();
-    $stmt = $db->prepare("SELECT * FROM contexts WHERE session_id=? ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$session]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$row) return [];
-    
-    return [
-        'themes' => json_decode($row['themes'], true) ?: [],
-        'intent' => $row['intent'] ?? '',
-        'keywords' => json_decode($row['keywords'], true) ?: [],
-        'depth_level' => (int)($row['depth_level'] ?? 1),
-        'clarity_score' => (int)($row['clarity_score'] ?? 50),
-        'density_score' => (int)($row['density_score'] ?? 50),
-        'clarity_advice' => $row['clarity_advice'] ?? '',
-        'density_advice' => $row['density_advice'] ?? ''
-    ];
-}
-
-// Glossaire : ajouter un terme
-function save_glossary_term(string $session, string $term, string $definition = '', string $context = ''): void {
-    $db = get_db();
-    $db->prepare("INSERT INTO glossary (session_id, term, definition, context_snippet) VALUES (?,?,?,?)")
-      ->execute([$session, $term, $definition, $context]);
-}
-
-// Glossaire : récupérer tous les termes d'une session
-function get_glossary(string $session): array {
-    $db = get_db();
-    $stmt = $db->prepare("SELECT * FROM glossary WHERE session_id=? ORDER BY created_at");
-    $stmt->execute([$session]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// News cache : vérifier si en cache
-function get_news_cache(string $query, string $source = 'google'): ?array {
-    $db = get_db();
-    $hash = md5($query . '_' . $source);
-    $stmt = $db->prepare("SELECT articles, fetched_at FROM news_cache WHERE query_hash=? AND source_type=?");
-    $stmt->execute([$hash, $source]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$row) return null;
-    
-    // Vérifier TTL
-    $age = time() - strtotime($row['fetched_at']);
-    if ($age > NEWS_CACHE_TTL) return null;
-    
-    return json_decode($row['articles'], true) ?: null;
-}
-
-// News cache : sauvegarder
-function save_news_cache(string $query, string $source, array $articles): void {
-    $db = get_db();
-    $hash = md5($query . '_' . $source);
-    $db->prepare("INSERT OR REPLACE INTO news_cache (query_hash, query_text, articles, source_type) VALUES (?,?,?,?)")
-      ->execute([$hash, $query, json_encode($articles), $source]);
-}
-
-// Plan : sauvegarder
-function save_plan(string $session, string $plan_md, array $themes): void {
-    $db = get_db();
-    $db->prepare("INSERT INTO session_plans (session_id, plan_markdown, themes_snapshot) VALUES (?,?,?)")
-      ->execute([$session, $plan_md, json_encode($themes)]);
-}
-
-// Plan : récupérer
-function get_plan(string $session): ?string {
-    $db = get_db();
-    $stmt = $db->prepare("SELECT plan_markdown FROM session_plans WHERE session_id=? ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$session]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $row ? $row['plan_markdown'] : null;
 }
 
 function get_history(string $session, int $limit = 20): array {
@@ -233,21 +147,8 @@ function get_session_stats(string $session): array {
     $m  = $db->prepare("SELECT COUNT(*) as cnt, SUM(tokens_in+tokens_out) as tok FROM messages WHERE session_id=?");
     $m->execute([$session]);
     $ms = $m->fetch(PDO::FETCH_ASSOC);
-    
-    // Stats basées sur contexts (v5.0) au lieu de analyses
-    $a  = $db->prepare("SELECT AVG(clarity_score) as avg_clarity, AVG(density_score) as avg_density, AVG(depth_level) as avg_depth FROM contexts WHERE session_id=?");
+    $a  = $db->prepare("SELECT AVG(sentiment_score) as avg_sent, AVG(complexity) as avg_cpx, AVG(cognitive_load) as avg_cog FROM analyses WHERE session_id=?");
     $a->execute([$session]);
     $as = $a->fetch(PDO::FETCH_ASSOC);
-    
     return array_merge($ms ?? [], $as ?? []);
-}
-
-// Supprime les données d'une session (pour clear.php)
-function clear_session_data(string $session): void {
-    $db = get_db();
-    $db->prepare("DELETE FROM messages WHERE session_id=?")->execute([$session]);
-    $db->prepare("DELETE FROM contexts WHERE session_id=?")->execute([$session]);
-    $db->prepare("DELETE FROM glossary WHERE session_id=?")->execute([$session]);
-    $db->prepare("DELETE FROM session_plans WHERE session_id=?")->execute([$session]);
-    $db->prepare("DELETE FROM user_context WHERE session_id=?")->execute([$session]);
 }

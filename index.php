@@ -32,18 +32,16 @@
 <!-- ═══ APP SHELL ═════════════════════════════════════════════ -->
 <div class="app-shell" id="app-shell">
 
-  <!-- LEFT PANEL ──────────────────────────────────────────────── -->
-  <aside class="left-panel" id="left-panel">
-    
+  <!-- SIDEBAR ──────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+
     <div class="brand-block">
       <div class="brand-logo">⬡</div>
       <div class="brand-text">
         <span class="brand-name">AETHER</span>
-        <span class="brand-ver">v5.0 • LLM STUDIO</span>
+        <span class="brand-ver">v4.0 • PANOPTICON</span>
       </div>
     </div>
-
-    <button class="panel-toggle-btn" onclick="toggleLeftPanel()" title="Masquer panneau gauche">◤</button>
 
     <div class="user-badge">
       <div class="user-avatar" id="user-avatar">?</div>
@@ -65,28 +63,6 @@
       <a href="#" class="nav-item" data-section="system"><span class="nav-icon">⬟</span>Système</a>
     </nav>
 
-    <!-- SECTION: AGENT SPÉCIAL -->
-    <div class="sidebar-section">
-      <div class="section-label">◤ AGENT SPÉCIAL</div>
-      <select id="agent-select" class="cyber-select">
-        <option value="standard">Standard — Polyvalent</option>
-        <option value="expert">Expert — Technique & Profond</option>
-        <option value="creative">Créatif — Innovant</option>
-        <option value="critic">Critique — Analyse rigoureuse</option>
-        <option value="tutor">Tuteur — Pédagogue</option>
-        <option value="coach">Coach — Motivant</option>
-      </select>
-    </div>
-
-    <!-- SECTION: PRE-PROMPT -->
-    <div class="sidebar-section">
-      <div class="section-label">◤ PRÉ-INSTRUCTION (PRE-PROMPT)</div>
-      <textarea id="pre-prompt-input" class="pre-prompt-input" 
-        placeholder="Ex: Réponds en français, sois concis, utilise des exemples..."></textarea>
-      <div class="hint-text">S'applique à chaque message envoyé</div>
-    </div>
-
-    <!-- SECTION: MODE OPÉRATOIRE -->
     <div class="sidebar-section">
       <div class="section-label">◤ MODE OPÉRATOIRE</div>
       <div class="mode-grid">
@@ -94,36 +70,31 @@
         <button class="mode-btn" data-mode="profond">PROFOND</button>
         <button class="mode-btn" data-mode="creatif">CRÉATIF</button>
         <button class="mode-btn" data-mode="technique">TECH</button>
-        <button class="mode-btn" data-mode="apprendre">TUTEUR</button>
+        <button class="mode-btn" data-mode="poetique">POÉSIE</button>
       </div>
     </div>
 
-    <!-- SECTION: MODÈLE NEURAL -->
     <div class="sidebar-section">
       <div class="section-label">◤ MODÈLE NEURAL</div>
       <select id="model-select" class="cyber-select">
-        <option value="chat">nemo · CHAT GÉNÉRAL</option>
+        <option value="chat">nemo · CHAT</option>
         <option value="analysis">small · ANALYSE</option>
-        <option value="reasoning">large · RAISONNEMENT</option>
+        <option value="reasoning">large · RAISON.</option>
         <option value="creative">small · CRÉATIF</option>
         <option value="code">codestral · CODE</option>
         <option value="fast">ministral · RAPIDE</option>
       </select>
     </div>
 
-    <!-- SECTION: OUTILS LLM -->
     <div class="sidebar-section">
-      <div class="section-label">◤ OUTILS D'AIDE LLM</div>
-      <div class="quick-actions">
-        <button class="quick-action-btn" onclick="getNextQuestion()">⟶ Suggérer question</button>
-        <button class="quick-action-btn" onclick="askWikipedia(prompt('Sujet Wikipedia?'))">⟶ Wikipedia</button>
-        <button class="quick-action-btn" onclick="getThematicHelp(prompt('Thématique?'))">⟈ Aide thématique</button>
-        <button class="quick-action-btn" onclick="getSuggestions()">⟶ Suggestions contexte</button>
+      <div class="section-label">◤ MOTEURS PARALLÈLES</div>
+      <div class="api-keys-status">
+        <div class="key-row"><span class="dot dot-green"></span> RÉPONDEUR <span class="key-tag">K1</span></div>
+        <div class="key-row"><span class="dot dot-cyan"></span> NEXUS-A <span class="key-tag">K2</span></div>
+        <div class="key-row"><span class="dot dot-purple"></span> NEXUS-B <span class="key-tag">K3</span></div>
       </div>
-      <div id="quick-actions-list" class="quick-actions-list"></div>
     </div>
 
-    <!-- SECTION: SESSION STATS -->
     <div class="sidebar-section">
       <div class="section-label">◤ SESSION</div>
       <div class="stats-grid">
@@ -212,17 +183,12 @@
 
   </main>
 
-  <!-- RIGHT PANEL - PANOPTICON ─────────────────────────────────────── -->
+  <!-- PANOPTICON PANEL ─────────────────────────────────────── -->
   <aside class="analysis-panel" id="analysis-panel">
 
     <div class="panel-header">
-      <div class="panel-title-row">
-        <div>
-          <div class="panel-title">PANOPTICON<span class="panel-ver">-7</span></div>
-          <div class="panel-sub">RADIOGRAPHIE LINGUISTIQUE TEMPS RÉEL</div>
-        </div>
-        <button class="panel-toggle-btn right" onclick="toggleRightPanel()" title="Masquer panneau droit">◢</button>
-      </div>
+      <div class="panel-title">PANOPTICON<span class="panel-ver">-7</span></div>
+      <div class="panel-sub">RADIOGRAPHIE LINGUISTIQUE TEMPS RÉEL</div>
       <div class="analysis-status" id="analysis-status">
         <span class="status-idle">◈ EN ATTENTE</span>
       </div>

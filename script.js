@@ -14,28 +14,21 @@ let structChart  = null;
 let isProcessing = false;
 let isLoggedIn   = false;
 let allAnalyses  = [];
-let currentPrePrompt = '';
-let currentAgentType = 'standard';
-let leftPanelVisible = true;
-let rightPanelVisible = true;
 
 // ── DOM refs ─────────────────────────────────────────────────
-const msgInput      = document.getElementById('msg-input');
-const sendBtn       = document.getElementById('send-btn');
-const messagesEl    = document.getElementById('messages');
-const clearBtn      = document.getElementById('clear-btn');
-const modelSelect   = document.getElementById('model-select');
-const charCount     = document.getElementById('char-count');
-const wordCountEl   = document.getElementById('word-count-input');
-const loginOverlay  = document.getElementById('login-overlay');
-const loginEmail    = document.getElementById('login-email');
-const loginBtn      = document.getElementById('login-btn');
-const loginError    = document.getElementById('login-error');
-const mobileBtn     = document.getElementById('mobile-nexus-btn');
+const msgInput    = document.getElementById('msg-input');
+const sendBtn     = document.getElementById('send-btn');
+const messagesEl  = document.getElementById('messages');
+const clearBtn    = document.getElementById('clear-btn');
+const modelSelect = document.getElementById('model-select');
+const charCount   = document.getElementById('char-count');
+const wordCountEl = document.getElementById('word-count-input');
+const loginOverlay= document.getElementById('login-overlay');
+const loginEmail  = document.getElementById('login-email');
+const loginBtn    = document.getElementById('login-btn');
+const loginError  = document.getElementById('login-error');
+const mobileBtn   = document.getElementById('mobile-nexus-btn');
 const analysisPanel = document.getElementById('analysis-panel');
-const leftPanel     = document.getElementById('left-panel');
-const prePromptInput = document.getElementById('pre-prompt-input');
-const agentSelect   = document.getElementById('agent-select');
 
 // ════════════════════════════════════════════════════════
 // LOGIN
@@ -157,32 +150,13 @@ async function sendMessage() {
   // ── PHASE 1 : reply ──────────────────────────────────────
   let replyData;
   try {
-    const payload = { 
-      message: text, 
-      mode: currentMode, 
-      model: currentModel, 
-      phase: 'reply',
-      pre_prompt: currentPrePrompt,
-      agent_type: currentAgentType
-    };
-    
     const res = await fetch('api.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ message:text, mode:currentMode, model:currentModel, phase:'reply' })
     });
-    
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status} — ${res.statusText}: ${errText.substring(0,200)}`);
-    }
-    
+    if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
     replyData = await res.json();
-    
-    // Vérifier si la réponse est un JSON valide
-    if (!replyData || typeof replyData !== 'object') {
-      throw new Error('Réponse API invalide (non-JSON)');
-    }
   } catch(err) {
     typingEl.remove();
     appendMessage('assistant', '⚠ Erreur réseau phase 1: ' + err.message);
@@ -547,156 +521,11 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   });
 });
 
-// ── Gestion modèles et agents ────────────────────────────────
 if (modelSelect) {
   modelSelect.addEventListener('change', () => {
     currentModel = modelSelect.value;
     setText('chat-model-label', modelSelect.options[modelSelect.selectedIndex].text.split('·')[0].trim());
   });
-}
-
-// Pre-prompt input
-if (prePromptInput) {
-  prePromptInput.addEventListener('input', () => {
-    currentPrePrompt = prePromptInput.value.trim();
-  });
-}
-
-// Agent select
-if (agentSelect) {
-  agentSelect.addEventListener('change', () => {
-    currentAgentType = agentSelect.value;
-  });
-}
-
-// Toggle panels
-function toggleLeftPanel() {
-  leftPanelVisible = !leftPanelVisible;
-  if (leftPanel) {
-    leftPanel.classList.toggle('collapsed', !leftPanelVisible);
-  }
-}
-
-function toggleRightPanel() {
-  rightPanelVisible = !rightPanelVisible;
-  if (analysisPanel) {
-    analysisPanel.classList.toggle('collapsed', !rightPanelVisible);
-  }
-}
-
-// Fonctions outils LLM
-async function askWikipedia(topic) {
-  if (!isLoggedIn || isProcessing) return;
-  isProcessing = true;
-  
-  appendMessage('user', `[WIKIPEDIA] ${topic}`);
-  const typingEl = appendTyping();
-  
-  try {
-    const res = await fetch('api.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ message: topic, phase: 'wikipedia', model: currentModel })
-    });
-    const data = await res.json();
-    typingEl.remove();
-    if (data.error) {
-      appendMessage('assistant', '⚠ ' + data.error);
-    } else {
-      appendMessage('assistant', data.reply, data.timestamp, {source: 'Wikipedia Helper'});
-    }
-  } catch(err) {
-    typingEl.remove();
-    appendMessage('assistant', '⚠ Erreur Wikipedia: ' + err.message);
-  }
-  isProcessing = false;
-}
-
-async function getNextQuestion() {
-  if (!isLoggedIn || isProcessing) return;
-  
-  const lastMsg = messagesEl.querySelector('.msg-wrap.user:last-child .msg-bubble');
-  const text = lastMsg ? lastMsg.textContent : '';
-  
-  try {
-    const res = await fetch('api.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ message: text, phase: 'next_question', model: currentModel })
-    });
-    const data = await res.json();
-    
-    // Afficher suggestions dans un bubble spécial
-    const suggestionsWrap = document.createElement('div');
-    suggestionsWrap.className = 'suggestions-bubble';
-    suggestionsWrap.innerHTML = '<div class="suggestions-title">◈ Questions suggérées:</div>';
-    (data.suggestions || []).forEach(q => {
-      const btn = document.createElement('button');
-      btn.className = 'suggestion-btn';
-      btn.textContent = q;
-      btn.onclick = () => { msgInput.value = q; msgInput.focus(); };
-      suggestionsWrap.appendChild(btn);
-    });
-    
-    const existing = document.getElementById('current-suggestions');
-    if (existing) existing.remove();
-    suggestionsWrap.id = 'current-suggestions';
-    messagesEl.appendChild(suggestionsWrap);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  } catch(err) {
-    console.error('Erreur next_question:', err);
-  }
-}
-
-async function getThematicHelp(topic) {
-  if (!isLoggedIn || isProcessing) return;
-  isProcessing = true;
-  
-  appendMessage('user', `[AIDE ${topic.toUpperCase()}]`);
-  const typingEl = appendTyping();
-  
-  try {
-    const res = await fetch('api.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ message: 'Explique-moi les concepts clés', topic: topic, phase: 'thematic_help', model: currentModel })
-    });
-    const data = await res.json();
-    typingEl.remove();
-    if (data.error) {
-      appendMessage('assistant', '⚠ ' + data.error);
-    } else {
-      appendMessage('assistant', data.reply, data.timestamp, {source: `Aide ${topic}`});
-    }
-  } catch(err) {
-    typingEl.remove();
-    appendMessage('assistant', '⚠ Erreur aide: ' + err.message);
-  }
-  isProcessing = false;
-}
-
-async function getSuggestions() {
-  try {
-    const lastMsg = messagesEl.querySelector('.msg-wrap.user:last-child .msg-bubble');
-    const text = lastMsg ? lastMsg.textContent : '';
-    
-    const res = await fetch('api.php', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ message: text, phase: 'suggest', model: currentModel })
-    });
-    const data = await res.json();
-    
-    // Afficher dans left panel
-    const container = document.getElementById('quick-actions-list');
-    if (container && data.suggestions) {
-      container.innerHTML = data.suggestions.map(s => 
-        `<button class="quick-action-btn" onclick="msgInput.value='${s.replace(/'/g,"\\'")}'; msgInput.focus()">⟶ ${s}</button>`
-      ).join('');
-    }
-  } catch(err) {
-    console.error('Erreur suggestions:', err);
-  }
 }
 
 if (msgInput) {
