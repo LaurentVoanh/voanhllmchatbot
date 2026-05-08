@@ -564,3 +564,307 @@ setText('chat-time', new Date().toLocaleTimeString('fr-FR'));
 // ════════════════════════════════════════════════════════
 initCharts();
 loginEmail.focus();
+
+// ═══════════════════════════════════════════════════
+// ASSISTANT ÉCRITURE — NOUVELLES FONCTIONS
+// ═══════════════════════════════════════════════════
+
+// Injection de texte dans le chat
+function injectText(text) {
+  if (msgInput) {
+    msgInput.value = text;
+    msgInput.focus();
+    updateInputMeta();
+  }
+}
+
+// Audit IA pour suggestion de modèle
+async function runAudit() {
+  const auditBtn = document.getElementById('audit-btn');
+  const auditStatus = document.getElementById('audit-status');
+  const auditRec = document.getElementById('audit-recommendation');
+  
+  if (!auditBtn || !auditStatus) return;
+  
+  auditBtn.disabled = true;
+  auditStatus.textContent = '◈ AUDIT EN COURS...';
+  auditStatus.style.color = 'var(--accent4)';
+  
+  try {
+    // Appel à l'API pour audit
+    const res = await fetch('api.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ 
+        message: 'AUDIT: Analyse cette conversation et recommande le meilleur modèle Mistral pour continuer (chat, analysis, reasoning, creative, code, fast). Réponds uniquement avec le nom du modèle recommandé et une courte justification.',
+        mode: 'normal',
+        model: 'chat',
+        phase: 'reply'
+      })
+    });
+    const data = await res.json();
+    
+    if (data.reply) {
+      auditRec.textContent = data.reply;
+      auditStatus.textContent = '◈ AUDIT COMPLET';
+      auditStatus.style.color = 'var(--accent3)';
+      
+      // Extraire le modèle suggéré
+      const modelMatch = data.reply.toLowerCase().match(/(chat|analysis|reasoning|creative|code|fast)/);
+      if (modelMatch && document.getElementById('model-select')) {
+        document.getElementById('model-select').value = modelMatch[1];
+      }
+    }
+  } catch(err) {
+    auditStatus.textContent = '◈ ERREUR AUDIT';
+    auditStatus.style.color = 'var(--danger)';
+    auditRec.textContent = err.message;
+  }
+  
+  auditBtn.disabled = false;
+}
+
+// Analyse Wikipedia contextuelle
+async function analyzeWikipedia() {
+  const wikiLinks = document.getElementById('wiki-links');
+  const wikiBtn = document.getElementById('wiki-btn');
+  
+  if (!wikiLinks || !wikiBtn) return;
+  
+  wikiBtn.disabled = true;
+  wikiBtn.textContent = '⟶ ANALYSE EN COURS...';
+  
+  try {
+    // Récupérer le dernier message
+    const lastMsg = messagesEl.querySelector('.msg-wrap:last-child .msg-bubble');
+    const text = lastMsg ? lastMsg.textContent : '';
+    
+    if (!text) {
+      wikiLinks.innerHTML = '<div class="wiki-placeholder">Aucun contenu à analyser</div>';
+      return;
+    }
+    
+    // Appel API pour extraire les sujets
+    const res = await fetch('api.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ 
+        message: `EXTRAIS les 3-5 concepts/sujets principaux de ce texte et pour chacun donne un lien Wikipedia FR pertinent. Format: "Concept • Lien". Texte: ${text.substring(0,500)}`,
+        mode: 'normal',
+        model: 'chat',
+        phase: 'reply'
+      })
+    });
+    const data = await res.json();
+    
+    if (data.reply) {
+      const lines = data.reply.split('\n').filter(l => l.trim());
+      wikiLinks.innerHTML = lines.map(line => {
+        const parts = line.split('•');
+        const concept = parts[0]?.trim() || line;
+        return `<div class="wiki-link-item">📖 ${concept}</div>`;
+      }).join('');
+    }
+  } catch(err) {
+    wikiLinks.innerHTML = `<div class="wiki-placeholder" style="color:var(--danger)">Erreur: ${err.message}</div>`;
+  }
+  
+  wikiBtn.disabled = false;
+  wikiBtn.textContent = '⟶ ANALYSER CONTEXTE WIKIPÉDIA';
+}
+
+// Vérification grammaire
+async function checkGrammar() {
+  const grammarCheck = document.getElementById('grammar-check');
+  const grammarBtn = document.getElementById('grammar-btn');
+  
+  if (!grammarCheck || !grammarBtn) return;
+  
+  grammarBtn.disabled = true;
+  grammarBtn.textContent = '⟶ VÉRIFICATION EN COURS...';
+  
+  try {
+    const lastMsg = messagesEl.querySelector('.msg-wrap:last-child .msg-bubble');
+    const text = lastMsg ? lastMsg.textContent : msgInput.value;
+    
+    if (!text) {
+      grammarCheck.innerHTML = '<div class="grammar-status">Aucun texte à vérifier</div>';
+      return;
+    }
+    
+    const res = await fetch('api.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ 
+        message: `VÉRIFIE la grammaire et l'orthographe de ce texte. Liste les erreurs trouvées ou confirme qu'il est correct. Sois concis. Texte: ${text.substring(0,500)}`,
+        mode: 'normal',
+        model: 'chat',
+        phase: 'reply'
+      })
+    });
+    const data = await res.json();
+    
+    if (data.reply) {
+      grammarCheck.innerHTML = `<div class="grammar-status" style="color:var(--accent3);text-align:left;">${data.reply.replace(/\n/g,'<br>')}</div>`;
+    }
+  } catch(err) {
+    grammarCheck.innerHTML = `<div class="grammar-status" style="color:var(--danger)">Erreur: ${err.message}</div>`;
+  }
+  
+  grammarBtn.disabled = false;
+  grammarBtn.textContent = '⟶ VÉRIFIER GRAMMAIRE';
+}
+
+// Export functions
+function exportToMarkdown() {
+  const messages = Array.from(messagesEl.querySelectorAll('.msg-bubble')).map(b => b.textContent);
+  const md = messages.join('\n\n---\n\n');
+  const blob = new Blob([md], {type:'text/markdown'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'conversation-' + new Date().toISOString().slice(0,10) + '.md';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportToHTML() {
+  const messages = Array.from(messagesEl.querySelectorAll('.msg-wrap')).map(w => {
+    const role = w.classList.contains('user') ? 'VOUS' : 'AETHER';
+    const content = w.querySelector('.msg-bubble')?.textContent || '';
+    return `<div><strong>${role}:</strong><p>${content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></div>`;
+  });
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Conversation AETHER</title></head><body>${messages.join('')}</body></html>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'conversation-' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportToPDF() {
+  alert('Pour exporter en PDF:\n1. Utilisez Ctrl+P (Imprimer)\n2. Sélectionnez "Enregistrer au format PDF"\n3. Validez');
+  window.print();
+}
+
+function copyToClipboard() {
+  const messages = Array.from(messagesEl.querySelectorAll('.msg-bubble')).map(b => b.textContent).join('\n\n');
+  navigator.clipboard.writeText(messages).then(() => {
+    alert('Conversation copiée dans le presse-papier!');
+  }).catch(err => {
+    alert('Erreur lors de la copie: ' + err.message);
+  });
+}
+
+// Mettre à jour les scores de style
+function updateStyleScores(text) {
+  if (!text) return;
+  
+  // Calculs basiques
+  const words = text.split(/\s+/).length;
+  const sentences = text.split(/[.!?]+/).length;
+  const avgSentenceLength = words / Math.max(sentences, 1);
+  
+  // Scores approximatifs
+  const clarity = Math.min(100, Math.max(0, 100 - (avgSentenceLength - 15) * 3));
+  const precision = Math.min(100, Math.max(0, 70 + (text.match(/[0-9%]/g)||[]).length * 5));
+  const coherence = Math.min(100, Math.max(0, 60 + (text.match(/donc|car|mais|ou|et|or|ni|cependant|pourtant/gi)||[]).length * 8));
+  const richness = Math.min(100, Math.max(0, 50 + (new Set(text.split(/\s+/)).size / words) * 100));
+  
+  setBar('si-clarity', 'si-clarity-v', clarity);
+  setBar('si-precision', 'si-precision-v', precision);
+  setBar('si-coherence', 'si-coherence-v', coherence);
+  setBar('si-richness', 'si-richness-v', richness);
+  
+  // Structure stats
+  setText('st-words', words);
+  setText('st-sentences', sentences);
+  setText('st-chars', text.length);
+  setText('st-paragraphs', text.split(/\n\n+/).length);
+  setText('st-readability', avgSentenceLength < 20 ? 'Bonne' : avgSentenceLength < 30 ? 'Moyenne' : 'Complexe');
+  setText('st-level', avgSentenceLength < 15 ? 'Facile' : avgSentenceLength < 25 ? 'Intermédiaire' : 'Avancé');
+}
+
+// ═══════════════════════════════════════════════════
+// EVENT LISTENERS POUR NOUVEAUX BOUTONS
+// ═══════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Audit button
+  const auditBtn = document.getElementById('audit-btn');
+  if (auditBtn) auditBtn.addEventListener('click', runAudit);
+  
+  // Wiki button
+  const wikiBtn = document.getElementById('wiki-btn');
+  if (wikiBtn) wikiBtn.addEventListener('click', analyzeWikipedia);
+  
+  // Grammar button
+  const grammarBtn = document.getElementById('grammar-btn');
+  if (grammarBtn) grammarBtn.addEventListener('click', checkGrammar);
+  
+  // Suggestions items (sidebar)
+  document.querySelectorAll('.suggestion-item[data-inject]').forEach(item => {
+    item.addEventListener('click', () => {
+      const text = item.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Optimization items
+  document.querySelectorAll('.opt-item[data-inject]').forEach(item => {
+    item.addEventListener('click', () => {
+      const text = item.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Question suggestions
+  document.querySelectorAll('.qs-item[data-inject]').forEach(item => {
+    item.addEventListener('click', () => {
+      const text = item.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Style action buttons
+  document.querySelectorAll('.style-action-btn[data-inject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Leech buttons
+  document.querySelectorAll('.leech-btn[data-inject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Tone options
+  document.querySelectorAll('.tone-option[data-inject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Brainstorm buttons
+  document.querySelectorAll('.brainstorm-btn[data-inject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-inject');
+      injectText(text);
+    });
+  });
+  
+  // Update style scores on message send
+  const originalSend = sendMessage;
+  sendMessage = async function() {
+    await originalSend();
+    const text = msgInput?.value || '';
+    updateStyleScores(text);
+  };
+});

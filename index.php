@@ -39,7 +39,7 @@
       <div class="brand-logo">⬡</div>
       <div class="brand-text">
         <span class="brand-name">AETHER</span>
-        <span class="brand-ver">v4.0 • PANOPTICON</span>
+        <span class="brand-ver">v4.0 • ASSISTANT ÉCRITURE</span>
       </div>
     </div>
 
@@ -63,8 +63,32 @@
       <a href="#" class="nav-item" data-section="system"><span class="nav-icon">⬟</span>Système</a>
     </nav>
 
+    <!-- ═══ OPTIMISATION MODÈLE & RÉGLAGES ═══════════════════ -->
     <div class="sidebar-section">
-      <div class="section-label">◤ MODE OPÉRATOIRE</div>
+      <div class="section-label">◤ AUDIT IA — MODÈLE OPTIMAL</div>
+      <div class="audit-box" id="audit-box">
+        <div class="audit-status" id="audit-status">◈ EN ATTENTE D'AUDIT</div>
+        <div class="audit-recommendation" id="audit-recommendation"></div>
+      </div>
+      <button class="audit-btn" id="audit-btn">⟶ LANCER AUDIT IA</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">◤ MODÈLE NEURAL SUGGÉRÉ</div>
+      <select id="model-select" class="cyber-select">
+        <option value="chat">nemo · CHAT</option>
+        <option value="analysis">small · ANALYSE</option>
+        <option value="reasoning">large · RAISON.</option>
+        <option value="creative">small · CRÉATIF</option>
+        <option value="code">codestral · CODE</option>
+        <option value="fast">ministral · RAPIDE</option>
+      </select>
+      <div class="model-hint" id="model-hint">Sélection automatique par audit IA recommandée</div>
+    </div>
+
+    <!-- ═══ MODES D'ÉCRITURE ═══════════════════════════════ -->
+    <div class="sidebar-section">
+      <div class="section-label">◤ MODE D'ÉCRITURE</div>
       <div class="mode-grid">
         <button class="mode-btn active" data-mode="normal">NORMAL</button>
         <button class="mode-btn" data-mode="profond">PROFOND</button>
@@ -74,18 +98,19 @@
       </div>
     </div>
 
+    <!-- ═══ SUGGESTIONS DE QUESTIONS ═══════════════════════ -->
     <div class="sidebar-section">
-      <div class="section-label">◤ MODÈLE NEURAL</div>
-      <select id="model-select" class="cyber-select">
-        <option value="chat">nemo · CHAT</option>
-        <option value="analysis">small · ANALYSE</option>
-        <option value="reasoning">large · RAISON.</option>
-        <option value="creative">small · CRÉATIF</option>
-        <option value="code">codestral · CODE</option>
-        <option value="fast">ministral · RAPIDE</option>
-      </select>
+      <div class="section-label">◤ SUGGESTIONS IA</div>
+      <div class="suggestions-list" id="suggestions-list">
+        <div class="suggestion-item" data-inject="Peux-tu développer davantage ce point ?">▸ Développer ce point</div>
+        <div class="suggestion-item" data-inject="Quelle est la source de cette information ?">▸ Demander sources</div>
+        <div class="suggestion-item" data-inject="Peux-tu reformuler plus simplement ?">▸ Reformuler simple</div>
+        <div class="suggestion-item" data-inject="Donne-moi des exemples concrets">▸ Exemples concrets</div>
+        <div class="suggestion-item" data-inject="Quelles sont les limites de cette approche ?">▸ Limites & critiques</div>
+      </div>
     </div>
 
+    <!-- ═══ MOTEURS PARALLÈLES ═══════════════════════════ -->
     <div class="sidebar-section">
       <div class="section-label">◤ MOTEURS PARALLÈLES</div>
       <div class="api-keys-status">
@@ -95,6 +120,7 @@
       </div>
     </div>
 
+    <!-- ═══ STATISTIQUES SESSION ═════════════════════════ -->
     <div class="sidebar-section">
       <div class="section-label">◤ SESSION</div>
       <div class="stats-grid">
@@ -187,187 +213,136 @@
   <aside class="analysis-panel" id="analysis-panel">
 
     <div class="panel-header">
-      <div class="panel-title">PANOPTICON<span class="panel-ver">-7</span></div>
-      <div class="panel-sub">RADIOGRAPHIE LINGUISTIQUE TEMPS RÉEL</div>
+      <div class="panel-title">ASSISTANT<span class="panel-ver">-ÉCRITURE</span></div>
+      <div class="panel-sub">AIDE INTELLIGENTE À LA RÉDACTION</div>
       <div class="analysis-status" id="analysis-status">
         <span class="status-idle">◈ EN ATTENTE</span>
       </div>
     </div>
 
-    <!-- ❶ VECTEUR ÉMOTIONNEL -->
-    <div class="analysis-block" id="block-sentiment">
-      <div class="block-title">❶ VECTEUR ÉMOTIONNEL</div>
-      <div class="sentiment-row">
-        <span class="sentiment-label" id="sentiment-label">NEUTRE</span>
-        <span class="sentiment-score" id="sentiment-score">50/100</span>
+    <!-- ❶ OPTIMISATION DE RÉPONSE -->
+    <div class="analysis-block" id="block-response-opt">
+      <div class="block-title">❶ OPTIMISATION DE RÉPONSE</div>
+      <div class="opt-suggestions" id="opt-suggestions">
+        <div class="opt-item clickable" data-inject="Peux-tu rendre cette réponse plus concise ?">▸ Rendre plus concis</div>
+        <div class="opt-item clickable" data-inject="Peux-tu développer avec plus de détails ?">▸ Développer davantage</div>
+        <div class="opt-item clickable" data-inject="Reformule avec un ton plus professionnel">▸ Ton professionnel</div>
+        <div class="opt-item clickable" data-inject="Ajoute des exemples pratiques">▸ Ajouter exemples</div>
+        <div class="opt-item clickable" data-inject="Simplifie le langage pour débutants">▸ Simplifier langage</div>
       </div>
-      <div class="sentiment-track"><div class="sentiment-bar" id="sentiment-bar" style="width:50%"></div></div>
-      <div class="emotion-grid">
-        <div class="emotion-item"><span class="emo-label">PRIMAIRE</span><span class="emo-val" id="emotion-primary">—</span></div>
-        <div class="emotion-item"><span class="emo-label">SECONDAIRE</span><span class="emo-val" id="emotion-secondary">—</span></div>
-      </div>
-      <div class="field-row" style="margin-top:.3rem"><span class="field-label">TON</span><span class="field-val accent" id="tone-val">—</span></div>
     </div>
 
-    <!-- ❷ STYLE -->
+    <!-- ❷ ANALYSE WIKIPÉDIA LIÉE -->
     <div class="analysis-block">
-      <div class="block-title">❷ VECTEUR STYLISTIQUE</div>
-      <div class="style-meters">
-        <div class="style-meter-row"><span>FORMEL</span><div class="style-track"><div class="style-fill accent" id="sb-formal"></div></div><span id="sb-formal-v">0</span></div>
-        <div class="style-meter-row"><span>ASSERTIF</span><div class="style-track"><div class="style-fill purple" id="sb-assert"></div></div><span id="sb-assert-v">0</span></div>
-        <div class="style-meter-row"><span>CRÉATIF</span><div class="style-track"><div class="style-fill green" id="sb-creative"></div></div><span id="sb-creative-v">0</span></div>
+      <div class="block-title">❷ CONNEXIONS WIKIPÉDIA</div>
+      <div class="wiki-links" id="wiki-links">
+        <div class="wiki-placeholder">En attente d'analyse contextuelle...</div>
       </div>
+      <button class="wiki-btn" id="wiki-btn">⟶ ANALYSER CONTEXTE WIKIPÉDIA</button>
     </div>
 
-    <!-- ❸ PROFIL PSYCHOLOGIQUE -->
+    <!-- ❸ SUGGESTIONS DE QUESTIONS -->
     <div class="analysis-block">
-      <div class="block-title">❸ PROFIL PSYCHOLOGIQUE</div>
-      <div class="psych-meters">
-        <div class="meter-row"><span>STRESS</span><div class="meter-track"><div class="meter-fill danger" id="m-stress"></div></div><span id="mv-stress">—</span></div>
-        <div class="meter-row"><span>DISSONANCE</span><div class="meter-track"><div class="meter-fill warn" id="m-dissonance"></div></div><span id="mv-dissonance">—</span></div>
-        <div class="meter-row"><span>OUVERTURE</span><div class="meter-track"><div class="meter-fill accent" id="m-motivation-bar"></div></div><span id="mv-motivation">—</span></div>
-      </div>
-      <div class="psycho-grid">
-        <div class="pg-item"><span class="pg-label">MASLOW</span><span class="pg-val" id="pg-maslow">—</span></div>
-        <div class="pg-item"><span class="pg-label">ATTACHEMENT</span><span class="pg-val" id="pg-attach">—</span></div>
-        <div class="pg-item"><span class="pg-label">LOCUS</span><span class="pg-val" id="pg-locus">—</span></div>
-        <div class="pg-item"><span class="pg-label">MOTIVATION</span><span class="pg-val" id="pg-motiv">—</span></div>
-      </div>
-      <div class="field-row mt-half"><span class="field-label">DÉFENSES</span></div>
-      <div class="tags-wrap" id="defense-tags"></div>
-    </div>
-
-    <!-- ❹ BIG FIVE -->
-    <div class="analysis-block charts-section" id="block-big5">
-      <div class="block-title">❹ TRAITS PERSONNALITÉ BIG FIVE</div>
-      <div class="big5-grid">
-        <div class="big5-bar-wrap">
-          <div class="big5-bar-outer"><div class="big5-bar-fill" id="b5-open" style="height:50%"></div></div>
-          <div class="big5-bar-val" id="bv-open">50</div>
-          <div class="big5-bar-label">OUVERT.</div>
-        </div>
-        <div class="big5-bar-wrap">
-          <div class="big5-bar-outer"><div class="big5-bar-fill" id="b5-cons" style="height:50%"></div></div>
-          <div class="big5-bar-val" id="bv-cons">50</div>
-          <div class="big5-bar-label">CONSCI.</div>
-        </div>
-        <div class="big5-bar-wrap">
-          <div class="big5-bar-outer"><div class="big5-bar-fill" id="b5-extra" style="height:50%"></div></div>
-          <div class="big5-bar-val" id="bv-extra">50</div>
-          <div class="big5-bar-label">EXTRAV.</div>
-        </div>
-        <div class="big5-bar-wrap">
-          <div class="big5-bar-outer"><div class="big5-bar-fill" id="b5-agree" style="height:50%"></div></div>
-          <div class="big5-bar-val" id="bv-agree">50</div>
-          <div class="big5-bar-label">AGRÉAB.</div>
-        </div>
-        <div class="big5-bar-wrap">
-          <div class="big5-bar-outer"><div class="big5-bar-fill" id="b5-neuro" style="height:50%"></div></div>
-          <div class="big5-bar-val" id="bv-neuro">50</div>
-          <div class="big5-bar-label">NÉVROT.</div>
-        </div>
+      <div class="block-title">❸ QUESTIONS PERTINENTES</div>
+      <div class="question-suggestions" id="question-suggestions">
+        <div class="qs-item clickable" data-inject="Quelles sont les implications pratiques ?">▸ Implications pratiques</div>
+        <div class="qs-item clickable" data-inject="Y a-t-il des contre-arguments ?">▸ Contre-arguments</div>
+        <div class="qs-item clickable" data-inject="Comment appliquer cela concrètement ?">▸ Application concrète</div>
+        <div class="qs-item clickable" data-inject="Quelles ressources pour approfondir ?">▸ Ressources approfondies</div>
+        <div class="qs-item clickable" data-inject="Quels sont les risques potentiels ?">▸ Risques potentiels</div>
       </div>
     </div>
 
-    <!-- ❺ MARKETING -->
+    <!-- ❹ AMÉLIORATION STYLE -->
     <div class="analysis-block">
-      <div class="block-title">❺ PROFIL MARKETING</div>
-      <div class="mkt-persona" id="mkt-persona">PERSONA INDÉTERMINÉ</div>
-      <div class="mkt-meters">
-        <div class="meter-row"><span>ENGAGEMENT</span><div class="meter-track"><div class="meter-fill green" id="m-engage"></div></div><span id="mv-engage">—</span></div>
-        <div class="meter-row"><span>URGENCE</span><div class="meter-track"><div class="meter-fill warn" id="m-urgency"></div></div><span id="mv-urgency">—</span></div>
-        <div class="meter-row"><span>OBJECTION</span><div class="meter-track"><div class="meter-fill danger" id="m-objection"></div></div><span id="mv-objection">—</span></div>
-        <div class="meter-row"><span>PERSUASION</span><div class="meter-track"><div class="meter-fill purple" id="m-persuasion"></div></div><span id="mv-persuasion">—</span></div>
+      <div class="block-title">❹ AMÉLIORATION STYLE</div>
+      <div class="style-improvements">
+        <div class="style-meter-row"><span>CLARTÉ</span><div class="style-track"><div class="style-fill accent" id="si-clarity"></div></div><span id="si-clarity-v">0</span></div>
+        <div class="style-meter-row"><span>PRÉCISION</span><div class="style-track"><div class="style-fill purple" id="si-precision"></div></div><span id="si-precision-v">0</span></div>
+        <div class="style-meter-row"><span>COHÉRENCE</span><div class="style-track"><div class="style-fill green" id="si-coherence"></div></div><span id="si-coherence-v">0</span></div>
+        <div class="style-meter-row"><span>RICHESSE</span><div class="style-track"><div class="style-fill warn" id="si-richness"></div></div><span id="si-richness-v">0</span></div>
       </div>
-      <div class="mkt-row"><span class="field-label">DÉCISION</span><span class="field-val accent" id="mkt-decision">—</span></div>
-      <div class="mkt-row"><span class="field-label">PRIX</span><span class="field-val" id="mkt-price">—</span></div>
-      <div class="field-row mt-half"><span class="field-label">DOULEURS</span></div>
-      <div class="tags-wrap" id="pain-tags"></div>
-      <div class="field-row mt-half"><span class="field-label">DÉSIRS</span></div>
-      <div class="tags-wrap" id="desire-tags"></div>
+      <div class="style-actions">
+        <button class="style-action-btn" data-inject="Améliore la clarté de mon texte">Clarté ↑</button>
+        <button class="style-action-btn" data-inject="Rends mon texte plus précis">Précision ↑</button>
+        <button class="style-action-btn" data-inject="Enrichis mon vocabulaire">Vocabulaire ↑</button>
+      </div>
     </div>
 
-    <!-- ❻ RADAR STYLISTIQUE -->
-    <div class="analysis-block charts-section">
-      <div class="block-title">❻ RADAR STYLISTIQUE</div>
-      <canvas id="style-chart" height="200"></canvas>
-    </div>
-
-    <!-- ❼ SOCIOLOGIQUE -->
+    <!-- ❺ LEETCH & RECHERCHE -->
     <div class="analysis-block">
-      <div class="block-title">❼ PROFIL SOCIOLOGIQUE</div>
-      <div class="socio-grid">
-        <div class="sg-item"><span class="sg-label">ÉDUCATION</span><span class="sg-val" id="sg-edu">—</span></div>
-        <div class="sg-item"><span class="sg-label">GÉNÉRATION</span><span class="sg-val" id="sg-gen">—</span></div>
-        <div class="sg-item"><span class="sg-label">CLASSE</span><span class="sg-val" id="sg-class">—</span></div>
-        <div class="sg-item"><span class="sg-label">POLITIQUE</span><span class="sg-val" id="sg-polit">—</span></div>
-        <div class="sg-item"><span class="sg-label">SOCIOLECTE</span><span class="sg-val" id="sg-socio">—</span></div>
+      <div class="block-title">❺ LEECH & RECHERCHE</div>
+      <div class="leech-options">
+        <button class="leech-btn" data-inject="Trouve des sources académiques sur ce sujet">📚 Sources académiques</button>
+        <button class="leech-btn" data-inject="Extrais les points clés de ce texte">📋 Points clés</button>
+        <button class="leech-btn" data-inject="Génère un résumé exécutif">📝 Résumé exécutif</button>
+        <button class="leech-btn" data-inject="Crée une fiche de révision">📇 Fiche révision</button>
+        <button class="leech-btn" data-inject="Liste les concepts à connaître">💡 Concepts clés</button>
       </div>
-      <div class="socio-meters">
-        <div class="meter-row"><span>INDIVID.</span><div class="meter-track"><div class="meter-fill accent" id="m-indiv"></div></div><span id="mv-indiv">—</span></div>
-        <div class="meter-row"><span>CONFORM.</span><div class="meter-track"><div class="meter-fill purple" id="m-conform"></div></div><span id="mv-conform">—</span></div>
-      </div>
-      <div class="field-row mt-half"><span class="field-label">RÉFÉRENCES</span></div>
-      <div class="tags-wrap" id="cult-tags"></div>
     </div>
 
-    <!-- ❽ STRUCTURE & COGNITION + CHART -->
+    <!-- ❻ STRUCTURE & ORGANISATION -->
     <div class="analysis-block">
-      <div class="block-title">❽ STRUCTURE &amp; COGNITION</div>
+      <div class="block-title">❻ STRUCTURE TEXTE</div>
       <div class="struct-grid6">
-        <div class="struct-item"><div class="struct-val" id="st-complexity">—</div><div class="struct-label">COMPLEXITÉ</div></div>
-        <div class="struct-item"><div class="struct-val" id="st-richness">—</div><div class="struct-label">RICHESSE</div></div>
-        <div class="struct-item"><div class="struct-val" id="st-density">—</div><div class="struct-label">DENSITÉ</div></div>
-        <div class="struct-item"><div class="struct-val" id="st-cogload">—</div><div class="struct-label">COG.LOAD</div></div>
-        <div class="struct-item"><div class="struct-val" id="st-certainty">—</div><div class="struct-label">CERTITUDE</div></div>
-        <div class="struct-item"><div class="struct-val" id="st-hedging">—</div><div class="struct-label">HEDGING</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-paragraphs">—</div><div class="struct-label">PARAGRAPHES</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-sentences">—</div><div class="struct-label">PHRASES</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-words">—</div><div class="struct-label">MOTS</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-chars">—</div><div class="struct-label">CARACT.</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-readability">—</div><div class="struct-label">LISIBILITÉ</div></div>
+        <div class="struct-item"><div class="struct-val" id="st-level">—</div><div class="struct-label">NIVEAU</div></div>
       </div>
       <canvas id="struct-chart" height="110"></canvas>
     </div>
 
-    <!-- ❾ COMPORTEMENTAL -->
+    <!-- ❼ GRAMMAIRE & ORTHOGRAPHE -->
     <div class="analysis-block">
-      <div class="block-title">❾ SIGNAUX COMPORTEMENTAUX</div>
-      <div class="beh-meters">
-        <div class="meter-row"><span>DÉCISION</span><div class="meter-track"><div class="meter-fill green" id="m-decision"></div></div><span id="mv-decision">—</span></div>
-        <div class="meter-row"><span>RISQUE</span><div class="meter-track"><div class="meter-fill warn" id="m-risk"></div></div><span id="mv-risk">—</span></div>
-        <div class="meter-row"><span>INFO.</span><div class="meter-track"><div class="meter-fill accent" id="m-info"></div></div><span id="mv-info">—</span></div>
-        <div class="meter-row"><span>AUTORITÉ</span><div class="meter-track"><div class="meter-fill purple" id="m-auth"></div></div><span id="mv-auth">—</span></div>
-        <div class="meter-row"><span>COHÉRENCE</span><div class="meter-track"><div class="meter-fill danger" id="m-consist"></div></div><span id="mv-consist">—</span></div>
+      <div class="block-title">❼ VÉRIFICATION LANGUE</div>
+      <div class="grammar-check" id="grammar-check">
+        <div class="grammar-status">En attente d'analyse...</div>
       </div>
-      <div class="field-row mt-half"><span class="field-label">BIAIS COGNITIFS</span></div>
-      <div class="tags-wrap" id="bias-tags"></div>
+      <button class="grammar-btn" id="grammar-btn">⟶ VÉRIFIER GRAMMAIRE</button>
     </div>
 
-    <!-- ❿ INTENTION & THÈMES -->
+    <!-- ❽ TON & REGISTRE -->
     <div class="analysis-block">
-      <div class="block-title">❿ INTENTION &amp; THÈMES</div>
-      <div class="intent-badge" id="intent-badge">INDÉTERMINÉ</div>
-      <div class="tags-wrap" id="themes-tags"></div>
-      <div class="field-row mt-half"><span class="field-label">MOTS-CLÉS</span></div>
-      <div class="tags-wrap" id="keywords-tags"></div>
-    </div>
-
-    <!-- ⓫ EMPREINTE LINGUISTIQUE -->
-    <div class="analysis-block">
-      <div class="block-title">⓫ EMPREINTE LINGUISTIQUE</div>
-      <div class="ling-grid">
-        <div class="lg-item"><span class="lg-label">STRUCTURE</span><span class="lg-val" id="lg-struct">—</span></div>
-        <div class="lg-item"><span class="lg-label">VOIX</span><span class="lg-val" id="lg-voice">—</span></div>
-        <div class="lg-item"><span class="lg-label">PONCTUATION</span><span class="lg-val" id="lg-punct">—</span></div>
-        <div class="lg-item"><span class="lg-label">DIV. LEX.</span><span class="lg-val" id="lg-lexdiv">—</span></div>
+      <div class="block-title">❽ TON & REGISTRE</div>
+      <div class="tone-display" id="tone-display">
+        <div class="tone-badge" id="tone-badge">NEUTRE</div>
+        <div class="tone-options">
+          <button class="tone-option" data-inject="Rends le ton plus formel">Formel</button>
+          <button class="tone-option" data-inject="Rends le ton plus amical">Amical</button>
+          <button class="tone-option" data-inject="Rends le ton plus persuasif">Persuasif</button>
+          <button class="tone-option" data-inject="Rends le ton plus neutre">Neutre</button>
+        </div>
       </div>
-      <div class="field-row mt-half"><span class="field-label">PATTERNS</span></div>
-      <div class="tags-wrap" id="patterns-tags"></div>
-      <div class="field-row mt-half"><span class="field-label">PROCÉDÉS</span></div>
-      <div class="tags-wrap" id="devices-tags"></div>
-      <div class="field-row mt-half"><span class="field-label">ANOMALIES</span></div>
-      <div class="tags-wrap" id="anomaly-tags"></div>
     </div>
 
-    <!-- ⓬ META -->
+    <!-- ❾ IDÉES & BRAINSTORMING -->
+    <div class="analysis-block">
+      <div class="block-title">❾ BRAINSTORMING IA</div>
+      <div class="brainstorm-options">
+        <button class="brainstorm-btn" data-inject="Donne-moi 5 angles différents pour aborder ce sujet">🔄 5 angles différents</button>
+        <button class="brainstorm-btn" data-inject="Propose des analogies pour expliquer ce concept">💡 Analogies</button>
+        <button class="brainstorm-btn" data-inject="Génère des idées de titres accrocheurs">📰 Titres accrocheurs</button>
+        <button class="brainstorm-btn" data-inject="Suggère des sous-thèmes à explorer">🗂️ Sous-thèmes</button>
+      </div>
+    </div>
+
+    <!-- ❿ EXPORT & PARTAGE -->
+    <div class="analysis-block">
+      <div class="block-title">❿ EXPORT & FORMATAGE</div>
+      <div class="export-options">
+        <button class="export-btn" onclick="exportToMarkdown()">📄 Markdown</button>
+        <button class="export-btn" onclick="exportToHTML()">🌐 HTML</button>
+        <button class="export-btn" onclick="exportToPDF()">📕 PDF</button>
+        <button class="export-btn" onclick="copyToClipboard()">📋 Copier tout</button>
+      </div>
+    </div>
+
+    <!-- ⓫ MÉTADONNÉES -->
     <div class="analysis-block meta-block">
-      <div class="block-title">⓬ MÉTADONNÉES SYSTÈME</div>
+      <div class="block-title">⓫ MÉTADONNÉES SESSION</div>
       <div class="meta-grid">
         <div><span class="mg-label">MODÈLE</span><span class="mg-val" id="meta-model">—</span></div>
         <div><span class="mg-label">LATENCE</span><span class="mg-val" id="meta-latency">—</span></div>
